@@ -2,30 +2,155 @@
 
 
 //
-function imagesMiniatureGenerer($image, $miniature, $largeur, $hauteur)
+class GEP_Image
 {
 
-	$sortie = false;
+	//
+	public $document;
 	
-	$dst_type = 'PNG';
-	$dst_type = 'JPEG';
 	
-	if (file_exists($image)) {
+	//
+	public $hauteur;
 	
-		// Dimensions de l'image de destination
+	
+	//
+	public $largeur;
+	
+	
+	//
+	public function __construct ($document)
+	{
+	
+		// intialisation des variables
+		$this->largeur = 0;
+		$this->hauteur = 0;
+		
+		// traitement
+		if ($this->documentAssocier($document)) {
+		
+			$this->analyser();
+		
+		}
+	
+	}
+	
+	
+	//
+	public function analyser()
+	{
+	
+		// initialisation des variables
+		$sortie = false;
+		
+		// traitement
+		$dimensions = getimagesize($this->document);
+		
+		if ($dimensions !== false) {
+		
+			$this->largeur = (integer) $dimensions[0];
+			$this->hauteur = (integer) $dimensions[1];
+			$sortie = true;
+		
+		}
+		
+		// sortie
+		return $sortie;
+	
+	}
+	
+	
+	//
+	public function documentAssocier($document)
+	{
+	
+		// intialisation des variables
+		$sortie = false;
+		$this->document = '';
+		
+		// On regarde si le document existe
+		if (file_exists($document)) {
+		
+			$this->document = (string) $document;
+			$sortie = true;
+		
+		}
+		
+		// sortie
+		return $sortie;
+	
+	}
+	
+	
+	//
+	function redimensionner($parametres)
+	{
+	
+		$sortie = false;
+		
+		$cible = '';
+		$largeur = 0;
+		$hauteur = 0;
+		$type = 'JPEG';
+		$r = 0;
+		$g = 0;
+		$b = 0;
+		
+		// Lecture des paramètres
+		if (isset($parametres['cible'])) {
+		
+			$cible = (string) $parametres['cible'];
+		
+		}
+		
+		if (isset($parametres['largeur'])) {
+		
+			$largeur = (integer) $parametres['largeur'];
+		
+		}
+		
+		if (isset($parametres['hauteur'])) {
+		
+			$hauteur = (integer) $parametres['hauteur'];
+		
+		}
+		
+		if (isset($parametres['type'])) {
+		
+			$type = (string) $parametres['type'];
+		
+		}
+		
+		if (isset($parametres['r'])) {
+		
+			$r = (integer) $parametres['r'];
+		
+		}
+		
+		if (isset($parametres['g'])) {
+		
+			$g = (integer) $parametres['g'];
+		
+		}
+		
+		if (isset($parametres['b'])) {
+		
+			$b = (integer) $parametres['b'];
+		
+		}
+		
+		// Dimensions de la source
+		$src_l = $this->largeur;
+		$src_h = $this->hauteur;
+		
+		// Type de destination
+		$dst_type = $type;
+		
+		// Dimensions de la destination
 		$dst_l = $largeur;
 		$dst_h = $hauteur;
 		
 		
-		
-		// Source
-		$src_dimensions = getimagesize($image);
-		$src_l = $src_dimensions[0];
-		$src_h = $src_dimensions[1];
-		
-		
-		
-		// Création de l'image redimensionnée
+		// Calcul des variables de l'image de destination
 		$dst_x = 0;
 		$dst_y = 0;
 		
@@ -51,64 +176,71 @@ function imagesMiniatureGenerer($image, $miniature, $largeur, $hauteur)
 		}
 		
 		
+		// Lecture de la source
+		$src_img = imagecreatefromjpeg($this->document);
 		
-		//
-		$src_img = imagecreatefromjpeg($image);
+		if ($src_img !== false) {
 		
-		$dst_img = imagecreatetruecolor($largeur, $hauteur);
-		
-		// $fond_couleur = imagecolorallocate($dst_img, 0, 0, 0);
-		$fond_couleur = imagecolorallocate($dst_img, 39, 43, 49);
-		
-		if ($dst_type == 'PNG') {
-		
-			imagesavealpha($dst_img, true);
+			// Création de la destination
+			$dst_img = imagecreatetruecolor($largeur, $hauteur);
 			
-			$fond_couleur = imagecolorallocatealpha($dst_img, 255, 255, 255, 127);
+			if ($dst_img !== false) {
+			
+				$fond_couleur = imagecolorallocate($dst_img, $r, $g, $b);
+				
+				if ($dst_type == 'PNG') {
+				
+					imagesavealpha($dst_img, true);
+					
+					$fond_couleur = imagecolorallocatealpha($dst_img, 255, 255, 255, 127);
+				
+				}
+				
+				imagefill($dst_img, 0, 0, $fond_couleur);
+				
+				// Coordonnées de la zone à copier
+				$src_x = 0;
+				$src_y = 0;
+				
+				// Resize
+				imagecopyresized(
+					$dst_img, $src_img,
+					$dst_x, $dst_y,
+					$src_x, $src_y,
+					$dim_l, $dim_h,
+					$src_l, $src_h
+				);
+				
+				// Output
+				switch ($dst_type) {
+				
+					case 'JPEG':
+					
+						$sortie = imagejpeg($dst_img, $cible, 75);
+					
+					break;
+					
+					
+					case 'PNG':
+					
+						$sortie = imagepng($dst_img, $cible, 6);
+					
+					break;
+				
+				}
+				
+				// Free memory
+				imagedestroy($dst_img);
+			
+			}
 		
 		}
 		
-		imagefill($dst_img, 0, 0, $fond_couleur);
-		
-		// Coordonnées de la zone à copier
-		$src_x = 0;
-		$src_y = 0;
-		
-		// Resize
-		imagecopyresized(
-			$dst_img, $src_img,
-			$dst_x, $dst_y,
-			$src_x, $src_y,
-			$dim_l, $dim_h,
-			$src_l, $src_h
-		);
-		
-		// Output
-		switch ($dst_type) {
-		
-			case 'JPEG':
-			
-				$sortie = imagejpeg($dst_img, $miniature, 75);
-			
-			break;
-			
-			
-			case 'PNG':
-			
-				$sortie = imagepng($dst_img, $miniature, 6);
-			
-			break;
-		
-		}
-		
-		
-		
-		// Free memory
-		imagedestroy($dst_img);
+		// sortie
+		return $sortie;
+	
 	
 	}
-	
-	return $sortie;
 
 
 }
